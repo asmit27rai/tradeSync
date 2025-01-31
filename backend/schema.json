@@ -1,0 +1,102 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Trading Preferences Form",
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "_id": {
+          "type": "string",
+          "format": "uuid",
+          "coerce": true
+        },
+        "personal_info": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "email": { "type": "string", "format": "email" },
+            "walletAddress": { "type": "string", "pattern": "^0x[a-fA-F0-9]{40}$" },
+            "tradingExperience": { "type": "string" },
+            "profession": { "type": "string" }
+          },
+          "required": ["name", "email", "tradingExperience", "profession"]
+        },
+        "financial_profile": {
+          "type": "object",
+          "properties": {
+            "monthlyIncome": { "type": "number" },
+            "totalInvestableAmount": { "type": "number" },
+            "monthlyInvestment": { "type": "number" },
+            "emergencyFunds": { "type": "number" },
+            "existingInvestments": { "type": "string" }
+          },
+          "required": ["monthlyIncome", "totalInvestableAmount", "monthlyInvestment", "emergencyFunds"]
+        },
+        "risk_strategy": {
+          "type": "object",
+          "properties": {
+            "riskTolerance": { "type": "string", "enum": ["low", "medium", "high"] },
+            "maxPortfolioLoss": { "type": "string" },
+            "investmentTimeframe": { "type": "string" },
+            "withdrawalNeeds": { "type": "string" }
+          },
+          "required": ["riskTolerance", "maxPortfolioLoss", "investmentTimeframe", "withdrawalNeeds"]
+        },
+        "trading_preferences": {
+          "type": "object",
+          "properties": {
+            "preferredCrypto": { "type": "array", "items": { "type": "string" } },
+            "excludedCrypto": { "type": "array", "items": { "type": "string" } },
+            "maxPerAsset": { "type": "string" },
+            "rebalancingFrequency": { "type": "string" }
+          }
+        },
+        "trading_parameters": {
+          "type": "object",
+          "properties": {
+            "tradingStrategy": { "type": "string" },
+            "stopLoss": { "type": "string" },
+            "takeProfitTarget": { "type": "string" },
+            "maxDrawdown": { "type": "string" },
+            "leveragePreference": { "type": "string", "enum": ["none", "low", "medium", "high"] }
+          }
+        },
+        "portfolio_constraints": {
+          "type": "object",
+          "properties": {
+            "minPositionSize": { "type": "string" },
+            "maxPositionSize": { "type": "string" },
+            "minTradeDuration": { "type": "string" },
+            "maxNumberOfPositions": { "type": "string" }
+          }
+        },
+        "tax_reporting": {
+          "type": "object",
+          "properties": {
+            "taxCountry": { "type": "string" },
+            "reportingCurrency": { "type": "string" },
+            "taxConsiderations": { "type": "string" }
+          }
+        },
+        "communication_preferences": {
+          "type": "object",
+          "properties": {
+            "alertPreferences": { "type": "array", "items": { "type": "string" } },
+            "reportingFrequency": { "type": "string" },
+            "telegramHandle": { "type": "string" }
+          }
+        },
+        "market_preferences": {
+          "type": "object",
+          "properties": {
+            "tradingHours": { "type": "array", "items": { "type": "string" } },
+            "preferredExchanges": { "type": "array", "items": { "type": "string" } },
+            "marketCapPreference": { "type": "string" },
+            "volumeThreshold": { "type": "string" }
+          }
+        }
+      },
+      "required": ["_id", "personal_info", "financial_profile", "risk_strategy"]
+    }
+  }
+  
