@@ -23,19 +23,48 @@ import {
   Activity,
   Sliders,
   Copy,
+  User,
+  Mail,
+  Briefcase,
+  Clock,
+  DollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useWallet } from "@/context/walletContext";
 
 const Dashboard = () => {
   const { account } = useWallet();
-
-  const [showForm, setShowForm] = useState(4 === 4);
+  const [showForm, setShowForm] = useState(true);
+  interface UserData {
+    personal_info: {
+      name: string;
+      email: string;
+      walletAddress: string | null;
+      tradingExperience: string;
+      profession: string;
+    };
+    financial_profile: {
+      monthlyIncome: string;
+      totalInvestableAmount: string;
+      monthlyInvestment: string;
+      emergencyFunds: string;
+      existingInvestments: string;
+    };
+    risk_strategy: {
+      riskTolerance: string;
+      maxPortfolioLoss: string;
+      investmentTimeframe: string;
+      withdrawalNeeds: string;
+    };
+  }
+  
+  const [userData, setUserData] = useState<UserData | null>(null);
+  
   const [formData, setFormData] = useState({
     personal_info: {
       name: "",
       email: "",
-      walletAddress: "",
+      walletAddress: account || "", // Set wallet address from account
       tradingExperience: "",
       profession: "",
     },
@@ -72,6 +101,13 @@ const Dashboard = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const submissionData = {
+      ...formData,
+      personal_info: {
+        ...formData.personal_info,
+        walletAddress: account,
+      },
+    };
     setShowForm(false);
 
     try {
@@ -80,7 +116,7 @@ const Dashboard = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData), // Send the form data as a JSON string
+        body: JSON.stringify(submissionData),
       });
 
       if (!response.ok) {
@@ -89,20 +125,22 @@ const Dashboard = () => {
 
       const data = await response.json();
       console.log("Form submitted successfully:", data);
+      setUserData(submissionData);
+      setShowForm(false);
     } catch (error) {
       console.error("Error while submitting form:", error);
     }
   };
 
   // Sample data - replace with real data in production
-  const [portfolioData] = useState([
-    { name: "Jan", value: 4000 },
-    { name: "Feb", value: 3000 },
-    { name: "Mar", value: 5000 },
-    { name: "Apr", value: 4500 },
-    { name: "May", value: 6000 },
-    { name: "Jun", value: 5500 },
-  ]);
+  // const [initialPortfolioData] = useState([
+  //   { name: "Jan", value: 4000 },
+  //   { name: "Feb", value: 3000 },
+  //   { name: "Mar", value: 5000 },
+  //   { name: "Apr", value: 4500 },
+  //   { name: "May", value: 6000 },
+  //   { name: "Jun", value: 5500 },
+  // ]);
 
   // Function to truncate address
   const truncateAddress = (address) => {
@@ -117,10 +155,12 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchUserData = async () => {
+      if (!account) return;
+
       try {
         const response = await fetch("http://localhost:5000/api/read", {
-          method: "GET", // No body for GET requests
+          method: "GET",
           headers: {
             "Content-Type": "application/json",
           },
@@ -131,14 +171,26 @@ const Dashboard = () => {
         }
 
         const data = await response.json();
-        console.log("Data fetched successfully:", data);
+        
+        // Find data for current wallet address
+        const userSpecificData = data.data.find(
+          item => item.personal_info.walletAddress.toLowerCase() === account.toLowerCase()
+        );
+
+        if (userSpecificData) {
+          setUserData(userSpecificData);
+          setShowForm(false); // Hide form if user data exists
+        } else {
+          setShowForm(true); // Show form if no user data found
+        }
       } catch (error) {
         console.error("Error while fetching data:", error);
+        setShowForm(true);
       }
     };
 
-    fetchData(); // Call the fetchData function
-  }, []); // Empty dependency array means it will run once on component mount
+    fetchUserData();
+  }, [account]);
 
   const ParticleBackground = () => {
     return (
@@ -235,6 +287,42 @@ const Dashboard = () => {
     </motion.div>
   );
 
+  const calculateStats = () => {
+    if (!userData) return null;
+
+    const totalInvestable = parseFloat(userData.financial_profile.totalInvestableAmount);
+    const monthlyInvestment = parseFloat(userData.financial_profile.monthlyInvestment);
+    const emergencyFunds = parseFloat(userData.financial_profile.emergencyFunds);
+    const existingInvestments = parseFloat(userData.financial_profile.existingInvestments);
+
+    const totalPortfolio = totalInvestable + existingInvestments;
+    const monthlyRate = (monthlyInvestment / totalPortfolio) * 100;
+
+    return {
+      totalPortfolio: totalPortfolio.toFixed(2),
+      monthlyInvestmentRate: monthlyRate.toFixed(1),
+      emergencyRatio: ((emergencyFunds / totalPortfolio) * 100).toFixed(1),
+      investmentUtilization: ((existingInvestments / totalInvestable) * 100).toFixed(1)
+    };
+  };
+
+  const generatePortfolioData = () => {
+    if (!userData) return [];
+    
+    const monthlyInvestment = parseFloat(userData.financial_profile.monthlyInvestment);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+    let currentValue = parseFloat(userData.financial_profile.existingInvestments);
+    
+    return months.map(month => {
+      currentValue *= (1 + (Math.random() * 0.1 - 0.05)); // Random fluctuation
+      currentValue += monthlyInvestment;
+      return {
+        name: month,
+        value: Math.round(currentValue)
+      };
+    });
+  };
+
   if (showForm) {
     return (
       <div className="min-h-screen bg-gray-900 text-white p-6">
@@ -261,9 +349,9 @@ const Dashboard = () => {
           <input
             type="text"
             name="personal_info.walletAddress"
-            placeholder="Wallet Address"
-            className="p-2 bg-gray-800 rounded"
-            onChange={handleChange}
+            value={account || ""}
+            className="p-2 bg-gray-800 rounded cursor-not-allowed"
+            readOnly
           />
           <input
             type="text"
@@ -355,24 +443,14 @@ const Dashboard = () => {
     );
   }
 
+  const stats = calculateStats();
+  const portfolioData = generatePortfolioData();
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white p-6 relative">
       <ParticleBackground />
 
-      <motion.div
-        className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl"
-        animate={{
-          scale: [1, 1.2, 1],
-          x: [0, 50, 0],
-          y: [0, 30, 0],
-        }}
-        transition={{
-          duration: 8,
-          repeat: Infinity,
-        }}
-      />
-
-      {/* Header with MetaMask Account */}
+      {/* Header section remains the same */}
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-teal-400">
           Trading Dashboard
@@ -400,49 +478,77 @@ const Dashboard = () => {
               </div>
             </div>
           </motion.div>
-          <div className="flex gap-4">
-            <Button variant="ghost" className="flex items-center gap-2">
-              <RefreshCcw className="h-4 w-4" />
-              Sync
-            </Button>
-            <Button variant="ghost" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              Settings
-            </Button>
-          </div>
         </div>
       </div>
+
+      {/* User Profile Summary */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-8"
+      >
+        <Card className="bg-gray-800/50 backdrop-blur-lg border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-xl font-bold">Profile Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="flex items-center gap-4">
+                <User className="h-8 w-8 text-blue-400" />
+                <div>
+                  <p className="text-gray-400">Name</p>
+                  <p className="font-medium">{userData?.personal_info.name}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <Mail className="h-8 w-8 text-blue-400" />
+                <div>
+                  <p className="text-gray-400">Email</p>
+                  <p className="font-medium">{userData?.personal_info.email}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <Briefcase className="h-8 w-8 text-blue-400" />
+                <div>
+                  <p className="text-gray-400">Profession</p>
+                  <p className="font-medium">{userData?.personal_info.profession}</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         {[
           {
-            title: "Portfolio Value",
-            value: "$15,234.56",
+            title: "Total Portfolio",
+            value: `$${stats?.totalPortfolio}`,
             icon: Wallet,
-            trend: "+12.3%",
+            trend: `${stats?.monthlyInvestmentRate}% monthly`,
             isPositive: true,
           },
           {
-            title: "Daily Return",
-            value: "$234.12",
+            title: "Monthly Investment",
+            value: `$${userData?.financial_profile.monthlyInvestment}`,
             icon: BarChart2,
-            trend: "+5.2%",
+            trend: "Regular Investment",
             isPositive: true,
           },
           {
-            title: "Active Trades",
-            value: "8",
+            title: "Risk Tolerance",
+            value: userData?.risk_strategy.riskTolerance,
             icon: Activity,
-            trend: "3 pending",
+            trend: `Max Loss ${userData?.risk_strategy.maxPortfolioLoss}`,
             isPositive: true,
           },
           {
-            title: "Total Profit",
-            value: "$1,234.56",
+            title: "Emergency Funds",
+            value: `$${userData?.financial_profile.emergencyFunds}`,
             icon: PieChart,
-            trend: "-2.1%",
-            isPositive: false,
+            trend: `${stats?.emergencyRatio}% of portfolio`,
+            isPositive: true,
           },
         ].map((stat, index) => (
           <motion.div
@@ -481,7 +587,7 @@ const Dashboard = () => {
         ))}
       </div>
 
-      {/* Main Chart */}
+      {/* Portfolio Performance Chart */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -489,9 +595,7 @@ const Dashboard = () => {
       >
         <Card className="bg-gray-800/50 backdrop-blur-lg border-gray-700">
           <CardHeader>
-            <CardTitle className="text-xl font-bold">
-              Portfolio Performance
-            </CardTitle>
+            <CardTitle className="text-xl font-bold">Portfolio Performance</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-[400px]">
@@ -522,95 +626,76 @@ const Dashboard = () => {
         </Card>
       </motion.div>
 
-      {/* Bottom Grid */}
+      {/* Investment Strategy */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Active Trades */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
           <Card className="bg-gray-800/50 backdrop-blur-lg border-gray-700">
             <CardHeader>
-              <CardTitle className="text-xl font-bold">Active Trades</CardTitle>
+              <CardTitle className="text-xl font-bold">Investment Strategy</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {[
-                  {
-                    pair: "BTC/USDT",
-                    amount: "0.15 BTC",
-                    value: "$4,523.12",
-                    profit: "+2.3%",
-                  },
-                  {
-                    pair: "ETH/USDT",
-                    amount: "2.5 ETH",
-                    value: "$3,142.50",
-                    profit: "-1.2%",
-                  },
-                  {
-                    pair: "SOL/USDT",
-                    amount: "12 SOL",
-                    value: "$1,234.56",
-                    profit: "+5.6%",
-                  },
-                ].map((trade, index) => (
-                  <div
-                    key={index}
-                    className="flex justify-between items-center p-4 border border-gray-700 rounded-lg"
-                  >
-                    <div>
-                      <p className="font-semibold">{trade.pair}</p>
-                      <p className="text-sm text-gray-400">{trade.amount}</p>
-                    </div>
-                    <div className="text-right">
-                      <p>{trade.value}</p>
-                      <p
-                        className={
-                          trade.profit.startsWith("+")
-                            ? "text-green-400"
-                            : "text-red-400"
-                        }
-                      >
-                        {trade.profit}
-                      </p>
-                    </div>
+                <div className="flex justify-between items-center p-4 border border-gray-700 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Clock className="h-5 w-5 text-blue-400" />
+                    <span>Investment Timeframe</span>
                   </div>
-                ))}
+                  <span className="text-gray-400">{userData?.risk_strategy.investmentTimeframe}</span>
+                </div>
+                <div className="flex justify-between items-center p-4 border border-gray-700 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Activity className="h-5 w-5 text-blue-400" />
+                    <span>Risk Tolerance</span>
+                  </div>
+                  <span className="text-gray-400">{userData?.risk_strategy.riskTolerance}</span>
+                </div>
+                <div className="flex justify-between items-center p-4 border border-gray-700 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <DollarSign className="h-5 w-5 text-blue-400" />
+                    <span>Withdrawal Needs</span>
+                  </div>
+                  <span className="text-gray-400">{userData?.risk_strategy.withdrawalNeeds}</span>
+                </div>
               </div>
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Trading Settings */}
+        {/* Financial Overview */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
           <Card className="bg-gray-800/50 backdrop-blur-lg border-gray-700">
             <CardHeader>
-              <CardTitle className="text-xl font-bold">
-                Trading Settings
-              </CardTitle>
+              <CardTitle className="text-xl font-bold">Financial Overview</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {[
-                  { name: "Risk Level", value: "Medium", icon: Sliders },
-                  { name: "Auto-trading", value: "Enabled", icon: RefreshCcw },
-                  { name: "Stop Loss", value: "Active", icon: Activity },
-                ].map((setting, index) => (
-                  <div
-                    key={index}
-                    className="flex justify-between items-center p-4 border border-gray-700 rounded-lg"
-                  >
-                    <div className="flex items-center gap-3">
-                      <setting.icon className="h-5 w-5 text-blue-400" />
-                      <span>{setting.name}</span>
-                    </div>
-                    <span className="text-gray-400">{setting.value}</span>
+                <div className="flex justify-between items-center p-4 border border-gray-700 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <DollarSign className="h-5 w-5 text-blue-400" />
+                    <span>Monthly Income</span>
                   </div>
-                ))}
+                  <span className="text-gray-400">${userData?.financial_profile.monthlyIncome}</span>
+                </div>
+                <div className="flex justify-between items-center p-4 border border-gray-700 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Wallet className="h-5 w-5 text-blue-400" />
+                    <span>Total Investable Amount</span>
+                  </div>
+                  <span className="text-gray-400">${userData?.financial_profile.totalInvestableAmount}</span>
+                </div>
+                <div className="flex justify-between items-center p-4 border border-gray-700 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <PieChart className="h-5 w-5 text-blue-400" />
+                    <span>Existing Investments</span>
+                  </div>
+                  <span className="text-gray-400">${userData?.financial_profile.existingInvestments}</span>
+                </div>
               </div>
             </CardContent>
           </Card>
