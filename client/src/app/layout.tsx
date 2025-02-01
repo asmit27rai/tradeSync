@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import "@coinbase/onchainkit/styles.css";
 import { WalletProvider } from "@/context/walletContext";
+import { Providers } from "@/context/provider";
+import { baseSepolia } from "viem/chains";
+import { OnchainKitProvider } from "@coinbase/onchainkit";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,7 +33,19 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <WalletProvider>
-        {children}
+          <OnchainKitProvider
+            config={{
+              appearance: {
+                name: "OnchainKit Playground",
+                logo: "https://onchainkit.xyz/favicon/48x48.png?v4-19-24",
+                mode: "auto",
+                theme: "default",
+              },
+            }}
+            chain={baseSepolia}
+          >
+            <Providers>{children}</Providers>
+          </OnchainKitProvider>
         </WalletProvider>
       </body>
     </html>

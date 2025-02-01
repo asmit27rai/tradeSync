@@ -12,6 +12,8 @@ app.use(express.json());
 app.use(cors());
 
 const SCHEMA_ID = process.env.SCHEMA_ID;
+const PORTFOLIO_SCHEMA_ID = process.env.PORTFOLIO_ID;
+const SUBSCRIPTION = process.env.SUBSCRIBE_ID;
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
@@ -95,7 +97,7 @@ app.post("/api/v1/portfolio/write", async (req, res) => {
     const collection = new SecretVaultWrapper(
       orgConfig.nodes,
       orgConfig.orgCredentials,
-      SCHEMA_ID
+      PORTFOLIO_SCHEMA_ID
     );
     await collection.init();
 
@@ -140,7 +142,7 @@ app.get("/api/v1/portfolio/read", async (req, res) => {
     const collection = new SecretVaultWrapper(
       orgConfig.nodes,
       orgConfig.orgCredentials,
-      SCHEMA_ID
+      PORTFOLIO_SCHEMA_ID
     );
     await collection.init();
 
@@ -158,87 +160,63 @@ app.get("/api/v1/portfolio/read", async (req, res) => {
   }
 });
 
-// const data = [
-//   {
-//     _id: uuidv4(),
-//     personal_info: {
-//       name: "John Doe",
-//       email: "john.doe@example.com",
-//       walletAddress: "0x1234567890abcdef1234567890abcdef12345678",
-//       tradingExperience: "5 years",
-//       profession: "Software Engineer",
-//     },
-//     financial_profile: {
-//       monthlyIncome: 5000,
-//       totalInvestableAmount: 20000,
-//       monthlyInvestment: 1000,
-//       emergencyFunds: 5000,
-//       existingInvestments: "Stocks, Crypto",
-//     },
-//     risk_strategy: {
-//       riskTolerance: "medium",
-//       maxPortfolioLoss: "10%",
-//       investmentTimeframe: "5 years",
-//       withdrawalNeeds: "Low",
-//     },
-//   },
-//   {
-//     _id: uuidv4(),
-//     personal_info: {
-//       name: "Jane Smith",
-//       email: "jane.smith@example.com",
-//       walletAddress: "0xabcdef1234567890abcdef1234567890abcdef12",
-//       tradingExperience: "3 years",
-//       profession: "Data Scientist",
-//     },
-//     financial_profile: {
-//       monthlyIncome: 6000,
-//       totalInvestableAmount: 25000,
-//       monthlyInvestment: 1500,
-//       emergencyFunds: 6000,
-//       existingInvestments: "Real Estate, Stocks",
-//     },
-//     risk_strategy: {
-//       riskTolerance: "high",
-//       maxPortfolioLoss: "15%",
-//       investmentTimeframe: "10 years",
-//       withdrawalNeeds: "Medium",
-//     },
-//   },
-// ];
+app.post("/api/v1/subscription/write", async (req, res) => {
+  try {
+    const collection = new SecretVaultWrapper(
+      orgConfig.nodes,
+      orgConfig.orgCredentials,
+      SUBSCRIPTION
+    );
+    await collection.init();
 
-// async function main() {
-//   try {
-//     console.log("Data to be written:", Array.isArray(data), data);
+    const { address, transactionDone } = req.body;
 
-//     const collection = new SecretVaultWrapper(
-//       orgConfig.nodes,
-//       orgConfig.orgCredentials,
-//       SCHEMA_ID
-//     );
-//     await collection.init();
+    if (!address || typeof transactionDone !== "boolean") {
+      return res.status(400).json({ message: "Invalid request data" });
+    }
 
-//     if (!Array.isArray(data)) {
-//       throw new Error("Data must be an array.");
-//     }
+    const data = [
+      {
+        _id: uuidv4(),
+        address,
+        transactionDone
+      }
+    ];
 
-//     const dataWritten = await collection.writeToNodes(data);
-//     console.log("Data written to nodes:", JSON.stringify(dataWritten, null, 2));
+    const dataWritten = await collection.writeToNodes(data);
 
-//     const newIds =
-//       dataWritten &&
-//       dataWritten.result &&
-//       Array.isArray(dataWritten.result.data.created)
-//         ? [...new Set(dataWritten.result.data.created)]
-//         : [];
-//     console.log("Uploaded record ids:", newIds);
+    res.status(200).json({
+      message: "Subscription data written successfully",
+      data: dataWritten,
+    });
+  } catch (error) {
+    console.error("❌ Error while writing subscription data:", error.message);
+    res.status(500).json({
+      message: "Error writing subscription data",
+      error: error.message,
+    });
+  }
+});
 
-//     const decryptedCollectionData = await collection.readFromNodes({});
-//     console.log("Most recent records:", decryptedCollectionData);
-//   } catch (error) {
-//     console.error("❌ SecretVaultWrapper error:", error.message);
-//     process.exit(1);
-//   }
-// }
+app.get("/api/v1/subscription/read", async (req, res) => {
+  try {
+    const collection = new SecretVaultWrapper(
+      orgConfig.nodes,
+      orgConfig.orgCredentials,
+      SUBSCRIPTION
+    );
+    await collection.init();
 
-// main();
+    const decryptedSubscriptionData = await collection.readFromNodes({});
+    res.status(200).json({
+      message: "Subscription data retrieved successfully",
+      data: decryptedSubscriptionData,
+    });
+  } catch (error) {
+    console.error("❌ Error while reading subscription data:", error.message);
+    res.status(500).json({
+      message: "Error reading subscription data",
+      error: error.message,
+    });
+  }
+});
