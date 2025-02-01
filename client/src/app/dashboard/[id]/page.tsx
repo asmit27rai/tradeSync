@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useWallet } from "@/context/walletContext";
+import Graph from "@/components/Graph";
 
 const Dashboard = () => {
   const { account } = useWallet();
@@ -599,28 +600,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="h-[400px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={portfolioData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis dataKey="name" stroke="#9CA3AF" />
-                  <YAxis stroke="#9CA3AF" />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#1F2937",
-                      border: "none",
-                      borderRadius: "8px",
-                      color: "#fff",
-                    }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="value"
-                    stroke="#60A5FA"
-                    strokeWidth={2}
-                    dot={{ fill: "#60A5FA" }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              <Graph />
             </div>
           </CardContent>
         </Card>
