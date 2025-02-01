@@ -90,6 +90,74 @@ app.get("/api/read", async (req, res) => {
   }
 });
 
+app.post("/api/v1/portfolio/write", async (req, res) => {
+  try {
+    const collection = new SecretVaultWrapper(
+      orgConfig.nodes,
+      orgConfig.orgCredentials,
+      SCHEMA_ID
+    );
+    await collection.init();
+
+    const { wallet_address, timestamp, total_value_usd, assets, risk_metrics } = req.body;
+
+    const data = [
+      {
+        _id: uuidv4(),
+        portfolio_id: uuidv4(),
+        wallet_address,
+        timestamp,
+        total_value_usd,
+        assets: assets.map(asset => ({
+          symbol: asset.symbol,
+          name: asset.name,
+          quantity: asset.quantity,
+          current_price_usd: asset.current_price_usd,
+          value_usd: asset.value_usd,
+          allocation_percentage: asset.allocation_percentage,
+        })),
+        risk_metrics: risk_metrics || null
+      }
+    ];
+
+    const dataWritten = await collection.writeToNodes(data);
+
+    res.status(200).json({
+      message: "Portfolio data written successfully",
+      data: dataWritten,
+    });
+  } catch (error) {
+    console.error("❌ Error while writing portfolio data:", error.message);
+    res.status(500).json({
+      message: "Error writing portfolio data",
+      error: error.message,
+    });
+  }
+});
+
+app.get("/api/v1/portfolio/read", async (req, res) => {
+  try {
+    const collection = new SecretVaultWrapper(
+      orgConfig.nodes,
+      orgConfig.orgCredentials,
+      SCHEMA_ID
+    );
+    await collection.init();
+
+    const decryptedPortfolioData = await collection.readFromNodes({});
+    res.status(200).json({
+      message: "Portfolio data retrieved successfully",
+      data: decryptedPortfolioData,
+    });
+  } catch (error) {
+    console.error("❌ Error while reading portfolio data:", error.message);
+    res.status(500).json({
+      message: "Error reading portfolio data",
+      error: error.message,
+    });
+  }
+});
+
 // const data = [
 //   {
 //     _id: uuidv4(),

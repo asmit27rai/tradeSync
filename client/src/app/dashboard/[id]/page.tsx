@@ -4,15 +4,6 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import {
   Wallet,
   BarChart2,
   ArrowUpRight,
@@ -32,6 +23,28 @@ import {
 import { Button } from "@/components/ui/button";
 import { useWallet } from "@/context/walletContext";
 import Graph from "@/components/Graph";
+import { useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router } from "react-router-dom";
+
+interface NavigatorProps {
+  route: string;
+  children: React.ReactNode;
+}
+
+const Navigator: React.FC<NavigatorProps> = ({ route, children }) => {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    navigate(route);
+  };
+
+  return (
+    <button onClick={handleClick} className="p-2 bg-blue-500 text-white rounded">
+      {children}
+    </button>
+  );
+};
+
 
 const Dashboard = () => {
   const { account } = useWallet();
@@ -132,16 +145,6 @@ const Dashboard = () => {
       console.error("Error while submitting form:", error);
     }
   };
-
-  // Sample data - replace with real data in production
-  // const [initialPortfolioData] = useState([
-  //   { name: "Jan", value: 4000 },
-  //   { name: "Feb", value: 3000 },
-  //   { name: "Mar", value: 5000 },
-  //   { name: "Apr", value: 4500 },
-  //   { name: "May", value: 6000 },
-  //   { name: "Jun", value: 5500 },
-  // ]);
 
   // Function to truncate address
   const truncateAddress = (address) => {
@@ -448,6 +451,7 @@ const Dashboard = () => {
   const portfolioData = generatePortfolioData();
 
   return (
+    <Router>
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white p-6 relative">
       <ParticleBackground />
 
@@ -455,6 +459,7 @@ const Dashboard = () => {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-teal-400">
           Trading Dashboard
+          <Navigator route={`/portfolio/${account}`}>Portfolio</Navigator>
         </h1>
         <div className="flex items-center gap-6">
           {/* MetaMask Account Section */}
@@ -682,6 +687,7 @@ const Dashboard = () => {
         </motion.div>
       </div>
     </div>
+    </Router>
   );
 };
 

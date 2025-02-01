@@ -1,0 +1,86 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Portfolio",
+    "type": "object",
+    "properties": {
+      "portfolio_id": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "wallet_address": {
+        "type": "string",
+        "pattern": "^0x[a-fA-F0-9]{40}$"
+      },
+      "timestamp": {
+        "type": "string",
+        "format": "date-time",
+        "description": "When this portfolio snapshot was taken"
+      },
+      "total_value_usd": {
+        "type": "number",
+        "description": "Total portfolio value in USD"
+      },
+      "assets": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "symbol": {
+              "type": "string",
+              "description": "Asset symbol (e.g., BTC, ETH)"
+            },
+            "name": {
+              "type": "string",
+              "description": "Full name of the asset"
+            },
+            "quantity": {
+              "type": "number",
+              "description": "Amount of the asset held"
+            },
+            "current_price_usd": {
+              "type": "number",
+              "description": "Current price in USD"
+            },
+            "value_usd": {
+              "type": "number",
+              "description": "Total value of holdings in USD"
+            },
+            "allocation_percentage": {
+              "type": "number",
+              "description": "Percentage of total portfolio value",
+              "minimum": 0,
+              "maximum": 100
+            }
+          },
+          "required": ["symbol", "quantity", "current_price_usd", "value_usd", "allocation_percentage"]
+        }
+      },
+      "risk_metrics": {
+        "type": "object",
+        "properties": {
+          "largest_allocation": {
+            "type": "object",
+            "properties": {
+              "symbol": {
+                "type": "string"
+              },
+              "percentage": {
+                "type": "number"
+              }
+            }
+          },
+          "risk_level": {
+            "type": "string",
+            "enum": ["low", "medium", "high"]
+          },
+          "diversification_score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Portfolio diversification score"
+          }
+        }
+      }
+    },
+    "required": ["portfolio_id", "wallet_address", "timestamp", "total_value_usd", "assets"]
+  }
