@@ -37,8 +37,8 @@ async function initializeAgent() {
 
     const agentConfig = {
       configurable: { thread_id: "Warden Agent Kit CLI Agent Example!" },
-   };
-    
+    };
+
     const agent = createReactAgent({
       llm,
       tools,
@@ -57,50 +57,55 @@ async function initializeAgent() {
 async function startServer() {
   try {
     const { agent, config } = await initializeAgent();
-    
+
     app.post("/api/v1/agent", async (req, res) => {
       try {
         const userInput = req.body.prompt;
-        
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-    
+
+        res.setHeader("Content-Type", "text/event-stream");
+        res.setHeader("Cache-Control", "no-cache");
+        res.setHeader("Connection", "keep-alive");
+
         const stream = await agent.stream(
           { messages: [new HumanMessage(userInput)] },
           config
         );
-    
+
         for await (const chunk of stream) {
           if ("agent" in chunk) {
-            res.write(`data: ${JSON.stringify({
-              type: 'agent',
-              content: chunk.agent.messages[0].content
-            })}\n\n`);
+            res.write(
+              `data: ${JSON.stringify({
+                type: "agent",
+                content: chunk.agent.messages[0].content,
+              })}\n\n`
+            );
           } else if ("tools" in chunk) {
-            res.write(`data: ${JSON.stringify({
-              type: 'tools',
-              content: chunk.tools.messages[0].content
-            })}\n\n`);
+            res.write(
+              `data: ${JSON.stringify({
+                type: "tools",
+                content: chunk.tools.messages[0].content,
+              })}\n\n`
+            );
           }
         }
-        
-        res.write('data: [DONE]\n\n');
+
+        res.write("data: [DONE]\n\n");
         res.end();
-    
       } catch (error) {
         console.error("Error processing agent request:", error);
-        
+
         if (!res.headersSent) {
-          res.status(500).json({ 
-            message: "Agent processing error", 
-            error: error.message 
+          res.status(500).json({
+            message: "Agent processing error",
+            error: error.message,
           });
         } else {
-          res.write(`data: ${JSON.stringify({
-            type: 'error',
-            content: error.message
-          })}\n\n`);
+          res.write(
+            `data: ${JSON.stringify({
+              type: "error",
+              content: error.message,
+            })}\n\n`
+          );
           res.end();
         }
       }
@@ -114,7 +119,7 @@ async function startServer() {
           SCHEMA_ID
         );
         await collection.init();
-    
+
         const data = [
           {
             _id: uuidv4(),
@@ -133,8 +138,11 @@ async function startServer() {
               monthlyInvestment: parseInt(
                 req.body.financial_profile.monthlyInvestment
               ),
-              emergencyFunds: parseInt(req.body.financial_profile.emergencyFunds),
-              existingInvestments: req.body.financial_profile.existingInvestments,
+              emergencyFunds: parseInt(
+                req.body.financial_profile.emergencyFunds
+              ),
+              existingInvestments:
+                req.body.financial_profile.existingInvestments,
             },
             risk_strategy: {
               riskTolerance: req.body.risk_strategy.riskTolerance,
@@ -144,9 +152,9 @@ async function startServer() {
             },
           },
         ];
-    
+
         const dataWritten = await collection.writeToNodes(data);
-    
+
         res.status(200).json({
           message: "Data written successfully",
           data: dataWritten,
@@ -159,7 +167,7 @@ async function startServer() {
         });
       }
     });
-    
+
     app.get("/api/read", async (req, res) => {
       try {
         const collection = new SecretVaultWrapper(
@@ -168,7 +176,7 @@ async function startServer() {
           SCHEMA_ID
         );
         await collection.init();
-    
+
         const decryptedCollectionData = await collection.readFromNodes({});
         res.status(200).json({
           message: "Data retrieved successfully",
@@ -182,7 +190,7 @@ async function startServer() {
         });
       }
     });
-    
+
     app.post("/api/v1/portfolio/write", async (req, res) => {
       try {
         const collection = new SecretVaultWrapper(
@@ -192,17 +200,14 @@ async function startServer() {
         );
         await collection.init();
     
-        const { wallet_address, timestamp, total_value_usd, assets, risk_metrics } =
-          req.body;
-    
         const data = [
           {
             _id: uuidv4(),
             portfolio_id: uuidv4(),
-            wallet_address,
-            timestamp,
-            total_value_usd,
-            assets: assets.map((asset) => ({
+            wallet_address: req.body.wallet_address,
+            timestamp: req.body.timestamp,
+            total_value_usd: req.body.total_value_usd,
+            assets: req.body.assets.map((asset) => ({
               symbol: asset.symbol,
               name: asset.name,
               quantity: asset.quantity,
@@ -210,7 +215,7 @@ async function startServer() {
               value_usd: asset.value_usd,
               allocation_percentage: asset.allocation_percentage,
             })),
-            risk_metrics: risk_metrics || null,
+            risk_metrics: req.body.risk_metrics || null,
           },
         ];
     
@@ -220,6 +225,8 @@ async function startServer() {
           message: "Portfolio data written successfully",
           data: dataWritten,
         });
+
+        console.log("Portfolio data written successfully");
       } catch (error) {
         console.error("❌ Error while writing portfolio data:", error.message);
         res.status(500).json({
@@ -227,8 +234,8 @@ async function startServer() {
           error: error.message,
         });
       }
-    });
-    
+    });    
+
     app.get("/api/v1/portfolio/read", async (req, res) => {
       try {
         const collection = new SecretVaultWrapper(
@@ -237,7 +244,7 @@ async function startServer() {
           PORTFOLIO_SCHEMA_ID
         );
         await collection.init();
-    
+
         const decryptedPortfolioData = await collection.readFromNodes({});
         res.status(200).json({
           message: "Portfolio data retrieved successfully",
@@ -251,7 +258,7 @@ async function startServer() {
         });
       }
     });
-    
+
     app.post("/api/v1/subscription/write", async (req, res) => {
       try {
         const collection = new SecretVaultWrapper(
@@ -260,13 +267,13 @@ async function startServer() {
           SUBSCRIPTION
         );
         await collection.init();
-    
+
         const { address, transactionDone } = req.body;
-    
+
         if (!address || typeof transactionDone !== "boolean") {
           return res.status(400).json({ message: "Invalid request data" });
         }
-    
+
         const data = [
           {
             _id: uuidv4(),
@@ -274,9 +281,77 @@ async function startServer() {
             transactionDone,
           },
         ];
-    
+
         const dataWritten = await collection.writeToNodes(data);
-    
+
+        res.status(200).json({
+          message: "Subscription data written successfully",
+          data: dataWritten,
+        });
+      } catch (error) {
+        console.error(
+          "❌ Error while writing subscription data:",
+          error.message
+        );
+        res.status(500).json({
+          message: "Error writing subscription data",
+          error: error.message,
+        });
+      }
+    });
+
+    app.get("/api/v1/subscription/read", async (req, res) => {
+      try {
+        const collection = new SecretVaultWrapper(
+          orgConfig.nodes,
+          orgConfig.orgCredentials,
+          SUBSCRIPTION
+        );
+        await collection.init();
+
+        const decryptedSubscriptionData = await collection.readFromNodes({});
+        res.status(200).json({
+          message: "Subscription data retrieved successfully",
+          data: decryptedSubscriptionData,
+        });
+        console.log("Subscription data retrieved successfully");
+      } catch (error) {
+        console.error(
+          "❌ Error while reading subscription data:",
+          error.message
+        );
+        res.status(500).json({
+          message: "Error reading subscription data",
+          error: error.message,
+        });
+      }
+    });
+
+    app.post("/api/v1/subscription/write", async (req, res) => {
+      try {
+        const collection = new SecretVaultWrapper(
+          orgConfig.nodes,
+          orgConfig.orgCredentials,
+          SUBSCRIPTION
+        );
+        await collection.init();
+
+        const { address, transactionDone } = req.body;
+
+        if (!address || typeof transactionDone !== "boolean") {
+          return res.status(400).json({ message: "Invalid request data" });
+        }
+
+        const data = [
+          {
+            _id: uuidv4(),
+            address,
+            transactionDone,
+          },
+        ];
+
+        const dataWritten = await collection.writeToNodes(data);
+
         res.status(200).json({
           message: "Subscription data written successfully",
           data: dataWritten,
@@ -289,7 +364,7 @@ async function startServer() {
         });
       }
     });
-    
+
     app.get("/api/v1/subscription/read", async (req, res) => {
       try {
         const collection = new SecretVaultWrapper(
@@ -298,7 +373,7 @@ async function startServer() {
           SUBSCRIPTION
         );
         await collection.init();
-    
+
         const decryptedSubscriptionData = await collection.readFromNodes({});
         res.status(200).json({
           message: "Subscription data retrieved successfully",
@@ -311,7 +386,7 @@ async function startServer() {
           error: error.message,
         });
       }
-    });    
+    });
 
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
