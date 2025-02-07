@@ -32,44 +32,37 @@ const PortfolioDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!account) return;
+    const fetchPortfolio = async () => {
+      if (!account) return;
 
-    // Dummy data
-    const dummyPortfolio: Portfolio = {
-      wallet_address: account,
-      timestamp: new Date().toISOString(),
-      total_value_usd: 50000,
-      assets: [
-        {
-          symbol: "BTC",
-          name: "Bitcoin",
-          quantity: 1.2,
-          current_price_usd: 42000,
-          value_usd: 50400,
-          allocation_percentage: 50,
-        },
-        {
-          symbol: "ETH",
-          name: "Ethereum",
-          quantity: 10,
-          current_price_usd: 3000,
-          value_usd: 30000,
-          allocation_percentage: 50,
-        },
-      ],
-      risk_metrics: {
-        risk_level: "medium", // Changed to match the schema
-        diversification_score: 70,
-      },
+      try {
+        const response = await fetch("http://localhost:5000/api/v1/portfolio/read", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch portfolio data");
+        }
+
+        const data = await response.json();
+        const userPortfolio = data.data.find((p: Portfolio) => p.wallet_address === account);
+        
+        if (userPortfolio) {
+          setPortfolio(userPortfolio);
+        } else {
+          setError("No portfolio data found for this wallet.");
+        }
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    // Simulate loading data
-    setLoading(true);
-    setTimeout(() => {
-      setPortfolio(dummyPortfolio);
-      setLoading(false);
-    }, 1000); // Simulating async delay
-
+    fetchPortfolio();
   }, [account]);
 
   if (loading) return <div>Loading portfolio...</div>;
@@ -188,7 +181,6 @@ const RiskAssessment: React.FC<{ portfolio: Portfolio }> = ({ portfolio }) => (
     </CardHeader>
     <CardContent>
       <div className="space-y-4">
-        {/* Display Risk Level and Diversification Score as is */}
         <div>
           <div className="text-lg">Risk Level: {portfolio.risk_metrics.risk_level}</div>
           <div className="text-lg">

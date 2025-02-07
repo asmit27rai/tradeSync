@@ -21,7 +21,6 @@ const LandingPage = () => {
 
   const navigate = useNavigate();
 
-  // Add effect to watch for connection status
   useEffect(() => {
     if (isConnected && account) {
       navigate(`/dashboard/${account}`);

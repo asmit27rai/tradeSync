@@ -1,81 +1,73 @@
 import React, { useState, useEffect } from "react";
 import { useWallet } from "@/context/walletContext";
+import { createThirdwebClient, getContract, readContract } from "thirdweb";
+import { defineChain } from "thirdweb/chains";
 
-interface Asset {
-  symbol: string;
-  allocationPercentage: number;
+interface Portfolio {
+  wallet_address: string;
+  timestamp: string;
+  total_value_usd: number;
+  assets: {
+    symbol: string;
+    name: string;
+    quantity: number;
+    current_price_usd: number;
+    value_usd: number;
+    allocation_percentage: number;
+  }[];
+  risk_metrics: {
+    risk_level: string;
+    diversification_score: number;
+  };
 }
 
-interface RiskMetrics {
-  largestAllocationSymbol: string;
-  largestAllocationPercentage: number;
-  riskLevel: string;
-  diversificationScore: number;
-}
+const client = createThirdwebClient({
+  clientId: process.env.NEXT_PUBLIC_CLIENT_ID || "",
+});
 
-interface PortfolioRiskProps {
-  portfolioId: string;
-  totalValueUSD: number;
-  assets: Asset[];
-}
+const contract = getContract({
+  client,
+  chain: defineChain(84532),
+  address: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "",
+});
 
 const ADMIN_WALLET = process.env.NEXT_PUBLIC_ADMIN_WALLET || "";
 
-const RiskManagement: React.FC<PortfolioRiskProps> = ({ portfolioId, totalValueUSD, assets }) => {
-  const [riskMetrics, setRiskMetrics] = useState<RiskMetrics | null>(null);
+const RiskManagement: React.FC<{ portfolio: Portfolio }> = ({ portfolio }) => {
   const [subscriptionActive, setSubscriptionActive] = useState<boolean>(false);
-
+  const [riskData, setRiskData] = useState<any>(null);
+  const [aiResponse, setAiResponse] = useState<string>("");
+  const [loadingAi, setLoadingAi] = useState<boolean>(false);
   const { account } = useWallet();
 
   useEffect(() => {
+    const fetchRiskMetrics = async () => {
+      try {
+        const data = await readContract({
+          contract,
+          method:
+            "function calculateRiskMetrics((string symbol, uint256 quantity, uint256 currentPriceUSD, uint256 valueUSD, uint256 allocationPercentage)[] assets, uint256) pure returns ((string largestAllocationSymbol, uint256 largestAllocationPercentage, string riskLevel, uint256 diversificationScore))",
+          params: [portfolio.assets],
+        });
+        setRiskData(data);
+      } catch (error) {
+        console.error("Error fetching risk metrics:", error);
+      }
+    };
+    fetchRiskMetrics();
+  }, [portfolio.assets]);
+
+  useEffect(() => {
     const fetchSubscriptionStatus = async () => {
-      const response = await fetch('http://localhost:5000/api/v1/subscription/read');
+      const response = await fetch("http://localhost:5000/api/v1/subscription/read");
       const data = await response.json();
       const subscription = data.data.find((item: any) => item.address === account);
-      console.log(data);
       if (subscription && subscription.transactionDone) {
         setSubscriptionActive(true);
       }
     };
-
     fetchSubscriptionStatus();
-  }, [account]); 
-
-  const calculateRiskMetrics = (assets: Asset[]): RiskMetrics => {
-    if (!assets || assets.length === 0) {
-      return {
-        largestAllocationSymbol: "N/A",
-        largestAllocationPercentage: 0,
-        riskLevel: "N/A",
-        diversificationScore: 0,
-      };
-    }
-
-    let maxAllocation = 0;
-    let largestAllocationSymbol = "";
-    let diversificationScore = 0;
-
-    let sumSquaredAllocations = 0;
-    for (let i = 0; i < assets.length; i++) {
-      const asset = assets[i];
-      if (asset.allocationPercentage > maxAllocation) {
-        maxAllocation = asset.allocationPercentage;
-        largestAllocationSymbol = asset.symbol;
-      }
-      sumSquaredAllocations += asset.allocationPercentage * asset.allocationPercentage;
-    }
-
-    diversificationScore = assets.length > 0 ? 100 - sumSquaredAllocations / assets.length : 0;
-
-    const riskLevel = maxAllocation >= 50 ? "high" : maxAllocation >= 30 ? "medium" : "low";
-
-    return {
-      largestAllocationSymbol,
-      largestAllocationPercentage: maxAllocation,
-      riskLevel,
-      diversificationScore,
-    };
-  };
+  }, [account]);
 
   const handleActivateSubscription = async () => {
     if (!window.ethereum) {
@@ -102,7 +94,6 @@ const RiskManagement: React.FC<PortfolioRiskProps> = ({ portfolioId, totalValueU
 
       console.log("Transaction sent! Hash:", txHash);
 
-      // Polling for transaction success (optional)
       setTimeout(async () => {
         const response = await fetch("http://localhost:5000/api/v1/subscription/write", {
           method: "POST",
@@ -114,29 +105,99 @@ const RiskManagement: React.FC<PortfolioRiskProps> = ({ portfolioId, totalValueU
         if (data.message === "Subscription data written successfully") {
           setSubscriptionActive(true);
         }
-      }, 5000); // Wait for confirmation before saving subscription
+      }, 5000);
     } catch (error) {
       console.error("Transaction failed:", error);
       alert("Transaction failed. Please try again.");
     }
   };
 
-  return (
-    <div>
-      <h2>Risk Management</h2>
-      <div>
-        <h3>Risk Level: {riskMetrics?.riskLevel}</h3>
-        <p>Largest Allocation: {riskMetrics?.largestAllocationSymbol} ({riskMetrics?.largestAllocationPercentage}%)</p>
-        <p>Diversification Score: {riskMetrics?.diversificationScore}</p>
-      </div>
+  const handleAskAI = async () => {
+    setLoadingAi(true);
+    setAiResponse("");
 
-      <div>
+    try {
+      const res = await fetch("http://localhost:5000/api/v1/agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: `${JSON.stringify(portfolio)} Calculate Risk Management For This Porfolio...` }),
+      });
+      if (!res.body) {
+        throw new Error("ReadableStream not supported in this browser.");
+      }
+  
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let result = "";
+  
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+  
+        const text = decoder.decode(value, { stream: true });
+        const lines = text.split("\n\n"); // SSE messages are separated by double newlines
+  
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const jsonString = line.slice(6).trim(); // Remove "data: " prefix
+  
+            if (jsonString === "[DONE]") {
+              reader.cancel();
+              break;
+            }
+  
+            try {
+              const parsed = JSON.parse(jsonString);
+              if (parsed.type === "agent" || parsed.type === "tools") {
+                result += parsed.content + " "; // Append received chunk
+                setAiResponse(result); // Update UI dynamically
+              }
+            } catch (parseError) {
+              console.error("Error parsing SSE data:", parseError);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching AI response:", error);
+      setAiResponse("Error fetching AI response.");
+    } finally {
+      setLoadingAi(false);
+    }
+  };
+
+  return (
+    <div className="p-6 bg-gray-800 text-white rounded-lg shadow-lg max-w-xl mx-auto">
+      <h2 className="text-2xl font-bold mb-4">Risk Management</h2>
+      {riskData ? (
+        <div>
+          <h3 className="text-lg font-semibold">Risk Level: {riskData.riskLevel}</h3>
+          <p><strong>Largest Allocation:</strong> {riskData.largestAllocationSymbol} ({riskData.largestAllocationPercentage}%)</p>
+          <p><strong>Diversification Score:</strong> {riskData.diversificationScore}</p>
+        </div>
+      ) : (
+        <p>Loading risk metrics...</p>
+      )}
+      <div className="mt-4">
         {!subscriptionActive ? (
-          <button onClick={handleActivateSubscription}>Activate Subscription</button>
+          <button onClick={handleActivateSubscription} className="bg-blue-500 px-4 py-2 rounded hover:bg-blue-600">
+            Activate Subscription
+          </button>
         ) : (
-          <p>Subscription Active</p>
+          <>
+            <p className="text-green-400">Subscription Active</p>
+            <button onClick={handleAskAI} className="mt-3 bg-purple-500 px-4 py-2 rounded hover:bg-purple-600">
+              {loadingAi ? "Processing..." : "Ask AI"}
+            </button>
+          </>
         )}
       </div>
+      {aiResponse && (
+        <div className="mt-4 p-4 bg-gray-700 rounded">
+          <h3 className="text-lg font-semibold">AI Response:</h3>
+          <p>{aiResponse}</p>
+        </div>
+      )}
     </div>
   );
 };

@@ -80,8 +80,8 @@ address constant IWARDEN_PRECOMPILE_ADDRESS = 0x00000000000000000000000000000000
 IWarden constant IWARDEN_CONTRACT = IWarden(IWARDEN_PRECOMPILE_ADDRESS);
 
 struct KeychainFees {
-    Types.Coin[] keyReq;
-    Types.Coin[] sigReq;
+    Coin[] keyReq;
+    Coin[] sigReq;
 }
 
 struct Key {
@@ -114,7 +114,7 @@ struct KeyRequest {
     string rejectReason;
     uint64 approveTemplateId;
     uint64 rejectTemplateId;
-    Types.Coin[] deductedKeychainFees;
+    Coin[] deductedKeychainFees;
 }
 
 struct Keychain {
@@ -137,7 +137,7 @@ struct SignRequest {
     SignRequestStatus status;
     bytes result;
     bytes encryptionKey;
-    Types.Coin[] deductedKeychainFees;
+    Coin[] deductedKeychainFees;
     BroadcastType broadcastType;
 }
 
@@ -358,7 +358,7 @@ interface IWarden {
         KeyType keyType,
         uint64 approveTemplateId,
         uint64 rejectTemplateId,
-        Types.Coin[] calldata maxKeychainFees,
+        Coin[] calldata maxKeychainFees,
         uint64 nonce,
         uint64 actionTimeoutHeight,
         string calldata expectedApproveExpression,
@@ -382,7 +382,7 @@ interface IWarden {
         bytes calldata input,
         bytes[] calldata analyzers,
         bytes calldata encryptionKey,
-        Types.Coin[] calldata maxKeychainFees,
+        Coin[] calldata maxKeychainFees,
         uint64 nonce,
         uint64 actionTimeoutHeight,
         string calldata expectedApproveExpression,
@@ -435,9 +435,9 @@ interface IWarden {
     /// @return keys An array of `KeyResponse` structs containing the retrieved keys
     /// @return pageResponse  pagination details
     function allKeys(
-        Types.PageRequest calldata pageRequest,
+        PageRequest calldata pageRequest,
         int32[] calldata deriveAddresses
-    ) external view returns(KeyResponse[] memory keys, Types.PageResponse memory pageResponse);
+    ) external view returns(KeyResponse[] memory keys, PageResponse memory pageResponse);
 
     /// @dev Defines a method to query key by id.
     /// @param id The id of the key
@@ -455,10 +455,10 @@ interface IWarden {
     /// @return keys An array of `KeyResponse` structs containing the retrieved keys
     /// @return pageResponse  pagination details
     function keysBySpaceId(
-        Types.PageRequest calldata pageRequest,
+        PageRequest calldata pageRequest,
         uint64 spaceId,
         int32[] calldata deriveAddresses
-    ) external view returns(KeyResponse[] memory keys, Types.PageResponse memory pageResponse);
+    ) external view returns(KeyResponse[] memory keys, PageResponse memory pageResponse);
 
     /// @dev Defines a method to query keyRequest by id.
     /// @param id The id of the keyRequest
@@ -475,11 +475,11 @@ interface IWarden {
     /// @return keyRequests An array of `KeyRequest` structs containing the retrieved key requests
     /// @return pageResponse  pagination details
     function keyRequests(
-        Types.PageRequest calldata pageRequest,
+        PageRequest calldata pageRequest,
         uint64 keychainId,
         KeyRequestStatus status,
         uint64 spaceId
-    ) external view returns(KeyRequest[] memory keyRequests, Types.PageResponse memory pageResponse);
+    ) external view returns(KeyRequest[] memory keyRequests, PageResponse memory pageResponse);
 
     /// @dev Defines a method to query keychain by id.
     /// @param id The id of the keychain
@@ -493,8 +493,8 @@ interface IWarden {
     /// @return keychains An array of `Keychain` structs containing the retrieved key requests
     /// @return pageResponse  pagination details
     function keychains(
-        Types.PageRequest calldata pageRequest
-    ) external view returns(Keychain[] memory keychains, Types.PageResponse memory pageResponse);
+        PageRequest calldata pageRequest
+    ) external view returns(Keychain[] memory keychains, PageResponse memory pageResponse);
 
     /// @dev Defines a method to query sign request by id.
     /// @param id The id of the sign request
@@ -511,11 +511,11 @@ interface IWarden {
     /// @return signRequests An array of `SignRequest` structs containing the retrieved sign requests
     /// @return pageResponse  pagination details
     function signRequests(
-        Types.PageRequest calldata pageRequest,
+        PageRequest calldata pageRequest,
         uint64 keychainId,
         SignRequestStatus status,
         OptionalBroadcastType optionalBroadcastType
-    ) external view returns(SignRequest[] memory signRequests, Types.PageResponse memory pageResponse);
+    ) external view returns(SignRequest[] memory signRequests, PageResponse memory pageResponse);
 
     /// @dev Defines a method to query space by id.
     /// @param id The id of the space
@@ -529,8 +529,8 @@ interface IWarden {
     /// @return spaces An array of `Space` structs containing the retrieved sign requests
     /// @return pageResponse  pagination details
     function spaces(
-        Types.PageRequest calldata pageRequest
-    ) external view returns(Space[] memory spaces, Types.PageResponse memory pageResponse);
+        PageRequest calldata pageRequest
+    ) external view returns(Space[] memory spaces, PageResponse memory pageResponse);
 
     /// @dev Defines a method to query spaces by owner.
     /// @param pageRequest The pagination details
@@ -538,9 +538,9 @@ interface IWarden {
     /// @return spaces An array of `Space` structs containing the retrieved sign requests
     /// @return pageResponse  pagination details
     function spacesByOwner(
-        Types.PageRequest calldata pageRequest,
+        PageRequest calldata pageRequest,
         address owner
-    ) external view returns(Space[] memory spaces, Types.PageResponse memory pageResponse);
+    ) external view returns(Space[] memory spaces, PageResponse memory pageResponse);
 
     /// @dev AddKeychainAdmin defines an Event emitted when add a new admin to a keychain.
     /// @param newAdmin The address of the admin
@@ -751,7 +751,7 @@ abstract contract AbstractOrder {
   function createSignRequest(
     Types.SignRequestData calldata signRequestData,
     bytes calldata signRequestInput,
-    CommonTypes.Coin[] calldata maxKeychainFees
+    Coin[] calldata maxKeychainFees
   ) public returns (bool) {
     return
       WARDEN_PRECOMPILE.newSignRequest(
