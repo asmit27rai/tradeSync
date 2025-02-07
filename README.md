@@ -56,34 +56,4 @@ graph TD;
   L -- No --> E;
 ```
 
----
-
-## 🚀 Getting Started
-
-### **1️⃣ Clone the Repository**
-```bash
-git clone https://github.com/your-repo/tradesync.git
-cd tradesync
-```
-
-### **2️⃣ Install Dependencies**
-```bash
-npm install
-```
-
-### **3️⃣ Start Development Server**
-```bash
-npm run dev
-```
-
-### **4️⃣ Backend Setup**
-```bash
-cd backend
-npm install
-node server.js
-```
-
----
-
-
 **Happy Trading! 🚀💰**
