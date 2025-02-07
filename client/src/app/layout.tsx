@@ -18,6 +18,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "TradeSync",
   description: "Revolutionizing crypto trading with AI-powered strategies",
+  icons: {
+    icon: '/favicon.webp',
+  },
 };
 
 export default function RootLayout({
