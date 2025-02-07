@@ -32,6 +32,7 @@
 
 ### **Smart Contracts**  
 - **Base-Sepolia (ThirdWeb)** - Solidity-based smart contracts for **risk management and automated trading**.
+- **Here Is The Deployed Contract** - [Click Here](https://thirdweb.com/base-sepolia-testnet/0x8920939ebb4Bfa884aB4e93f9b1c628C286796CC)
 
 ---
 
